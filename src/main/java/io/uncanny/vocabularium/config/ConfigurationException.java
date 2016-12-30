@@ -21,24 +21,22 @@
  *   limitations under the License.
  * #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
  */
-package io.uncanny.vocabularium.vocabulary;
+package io.uncanny.vocabularium.config;
 
+public class ConfigurationException extends Exception {
 
-public final class AppAssembler {
+	private static final long serialVersionUID = 2930918010841829475L;
 
-	private AppAssembler() {
+	public ConfigurationException(String message) {
+		this(message,null);
 	}
 
-	public static String applicationName(final Class<?> appClass) {
-		final String name = System.getProperty("app.name");
-		if(name==null) {
-			return appClass.getName();
-		}
-		String ext=".bat";
-		if(System.getenv("MSYSTEM")!=null) {
-			ext=".sh";
-		}
-		return name+ext;
+	public ConfigurationException(Throwable cause) {
+		this("Unexpected configuration failure",cause);
+	}
+
+	public ConfigurationException(String message, Throwable cause) {
+		super(message, cause);
 	}
 
 }

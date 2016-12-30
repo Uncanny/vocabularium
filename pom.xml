@@ -201,8 +201,8 @@
 									<mainClass>io.uncanny.vocabularium.VocabularyPublisher</mainClass>
 									<jvmSettings>
 										<extraArguments>
-											<extraArgument>-Dservice.version=${project.version}</extraArgument>
-											<extraArgument>-Dservice.build=${git.commitsCount} (${git.branch}@${git.buildnumber})</extraArgument>
+											<extraArgument>-Dapp.version=${project.version}</extraArgument>
+											<extraArgument>-Dapp.build=${git.commitsCount} (${git.branch}@${git.buildnumber})</extraArgument>
 											<extraArgument>-Dlog4j.configuration=logging.cfg</extraArgument>
 										</extraArguments>
 									</jvmSettings>

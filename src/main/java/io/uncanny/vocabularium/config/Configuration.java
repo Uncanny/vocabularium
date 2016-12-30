@@ -60,11 +60,11 @@ public class Configuration {
 		return ImmutableSet.copyOf(this.extensions.keySet());
 	}
 
-	public <T> T extension(final String id, final Class<? extends T> clazz) {
+	public <T> T extension(final String id, final Class<? extends T> clazz) throws ConfigurationException {
 		return ConfigurationFactory.convert(this.extensions.get(id),clazz);
 	}
 
-	public <T> T extension(final Class<? extends T> clazz) {
+	public <T> T extension(final Class<? extends T> clazz) throws ConfigurationException {
 		final String id = getExtensionId(clazz);
 		final Object source = this.extensions.get(id);
 		if(source==null) {

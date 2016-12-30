@@ -31,8 +31,11 @@ import java.lang.reflect.Type;
 import java.net.URL;
 
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -67,33 +70,54 @@ public final class ConfigurationFactory {
 		return mapper;
 	}
 
-
-	static <T extends Configuration> T load(final URL url, final Class<? extends T> clazz) throws IOException {
+	static <T extends Configuration> T load(final URL url, final Class<? extends T> clazz) throws ConfigurationException {
 		final ObjectMapper mapper = parsingMapper();
 		try(InputStream openStream = url.openStream()) {
-			return mapper.readValue(openStream,clazz);
+			try {
+				return mapper.readValue(openStream,clazz);
+			} catch (JsonParseException e) {
+				throw new ConfigurationException("Could not parse configuration file "+url,e);
+			} catch (JsonProcessingException e) {
+				throw new ConfigurationException("Could not process configuration file "+url,e);
+			} catch (IOException e) {
+				throw new ConfigurationException("Could not load configuration file "+url,e);
+			}
+		} catch (IOException e) {
+			throw new ConfigurationException("Could not open configuration file "+url, e);
 		}
 	}
 
-	static <T> T convert(final Object source, final Type type) {
+	static <T> T convert(final Object source, final Type type) throws ConfigurationException {
 		final ObjectMapper mapper = parsingMapper();
 		final JavaType constructType = mapper.getTypeFactory().constructType(type);
 		checkArgument(mapper.canDeserialize(constructType),"%s is not a valid configuration class",constructType.toCanonical());
-		return mapper.convertValue(source,constructType);
+		try {
+			return mapper.convertValue(source,constructType);
+		} catch (IllegalArgumentException e) {
+			throw new ConfigurationException("Could not load configuration data",e);
+		}
 	}
 
-	public static <T extends Configuration> T load(final String value, final Class<? extends T> clazz) throws IOException {
+	public static <T extends Configuration> T load(final String value, final Class<? extends T> clazz) throws ConfigurationException {
 		final Yaml yaml=new Yaml();
-		final Object load=yaml.load(value);
-		return convert(load,clazz);
+		try {
+			final Object load=yaml.load(value);
+			return convert(load,clazz);
+		} catch (YAMLException e) {
+			throw new ConfigurationException("Could not parse configuration data",e);
+		}
 	}
 
-	public static Configuration load(final String value) throws IOException {
+	public static Configuration load(final String value) throws ConfigurationException {
 		return load(value,Configuration.class);
 	}
 
-	public static String save(final Configuration config) throws IOException {
-		return writingMapper().writeValueAsString(config);
+	public static String save(final Configuration config) throws ConfigurationException {
+		try {
+			return writingMapper().writeValueAsString(config);
+		} catch (JsonProcessingException e) {
+			throw new ConfigurationException("Could not save configuration",e);
+		}
 	}
 
 }

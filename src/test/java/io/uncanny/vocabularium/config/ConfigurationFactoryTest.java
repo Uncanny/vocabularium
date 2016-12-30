@@ -25,7 +25,9 @@ package io.uncanny.vocabularium.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -35,16 +37,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
-
-import io.uncanny.vocabularium.config.Configuration;
-import io.uncanny.vocabularium.config.ConfigurationExtension;
-import io.uncanny.vocabularium.config.ConfigurationFactory;
-import io.uncanny.vocabularium.config.PublisherConfig;
-import io.uncanny.vocabularium.config.ServerConfig;
 
 public class ConfigurationFactoryTest {
 
@@ -242,6 +239,26 @@ public class ConfigurationFactoryTest {
 		final ServersConfig collectLoaded=loaded.extension(ServersConfig.class);
 		assertThat(collectLoaded,notNullValue());
 		assertThat(collectLoaded.getHosts().size(),equalTo(servers.getHosts().size()));
+	}
+
+	@Test
+	public void signalsYAMLFailuresProperly() {
+		try {
+			ConfigurationFactory.load("...", Configuration.class);
+			fail("Should not be able to load invalid YAML");
+		} catch (ConfigurationException e) {
+			assertThat(e.getCause(),instanceOf(YAMLException.class));
+		}
+	}
+
+	@Test
+	public void signalsConversionFailuresProperly() {
+		try {
+			ConfigurationFactory.load("--.--.--", Configuration.class);
+			fail("Should not be able to load YAML data");
+		} catch (ConfigurationException e) {
+			assertThat(e.getCause(),instanceOf(IllegalArgumentException.class));
+		}
 	}
 
 	private DocumentationConfig aDocumentationConfig() {

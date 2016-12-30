@@ -21,7 +21,7 @@
  *   limitations under the License.
  * #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
  */
-package io.uncanny.vocabularium.vocabulary;
+package io.uncanny.vocabularium.util;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -40,9 +40,9 @@ import java.util.TreeMap;
 
 import com.google.common.collect.Maps;
 
-public final class Application {
+final class ApplicationUtil {
 
-	public static boolean logContext(final String... args) {
+	static boolean logContext(final String... args) {
 		final Calendar calendar=Calendar.getInstance();
 		final File file=
 			new File(
@@ -67,7 +67,7 @@ public final class Application {
 		return written;
 	}
 
-	public static void logContext(final PrintStream out, final String... args) {
+	static void logContext(final PrintStream out, final String... args) {
 		out.printf("PID: %s%n",getSunVMProcessId(getOracleCompatibleVMProcessId("<UNKNOWN>")));
 		out.printf("Program arguments:%n");
 		for(final String argument:args) {
@@ -82,11 +82,11 @@ public final class Application {
 			}
 		}
 		out.printf("Environment properties:%n");
-		for(final Entry<String,String> entry:Application.sort(System.getenv()).entrySet()) {
+		for(final Entry<String,String> entry:ApplicationUtil.sort(System.getenv()).entrySet()) {
 			out.printf(" - %s : %s%n",entry.getKey(),entry.getValue());
 		}
 		out.printf("System properties:%n");
-		for(final Entry<String,String> entry:Application.sort(System.getProperties()).entrySet()) {
+		for(final Entry<String,String> entry:ApplicationUtil.sort(System.getProperties()).entrySet()) {
 			out.printf(" - %s : %s%n",entry.getKey(),entry.getValue());
 		}
 	}
