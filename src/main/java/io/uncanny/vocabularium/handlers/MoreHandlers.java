@@ -26,6 +26,7 @@ package io.uncanny.vocabularium.handlers;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
+import io.uncanny.vocabularium.model.Site;
 import io.uncanny.vocabularium.vocabulary.Catalog;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
@@ -57,6 +58,10 @@ public final class MoreHandlers {
 
 	public static MethodControlHandler methodController(final HttpHandler aHandler) {
 		return new MethodControlHandler(aHandler);
+	}
+
+	public static HttpHandler catalogRepresentation(final Site site) {
+		return new CatalogRepresentionGenerator(site);
 	}
 
 	public static HttpHandler catalogReverseProxy(final Catalog catalog, final HttpHandler aHandler) {

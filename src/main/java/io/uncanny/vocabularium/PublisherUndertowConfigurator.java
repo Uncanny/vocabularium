@@ -25,7 +25,7 @@ package io.uncanny.vocabularium;
 
 import static io.uncanny.vocabularium.handlers.MoreHandlers.contentNegotiation;
 import static io.uncanny.vocabularium.handlers.MoreHandlers.methodController;
-import static io.uncanny.vocabularium.handlers.MoreHandlers.moduleReverseProxy;
+import static io.uncanny.vocabularium.handlers.MoreHandlers.*;
 import static io.undertow.Handlers.path;
 
 import java.io.IOException;
@@ -47,6 +47,7 @@ import io.uncanny.vocabularium.config.DocumentationConfig;
 import io.uncanny.vocabularium.config.PublisherConfig;
 import io.uncanny.vocabularium.handlers.ContentNegotiationHandler;
 import io.uncanny.vocabularium.handlers.NegotiableContent;
+import io.uncanny.vocabularium.model.Site;
 import io.uncanny.vocabularium.spi.DocumentationDeployment;
 import io.uncanny.vocabularium.spi.DocumentationDeploymentFactory;
 import io.uncanny.vocabularium.spi.DocumentationProvider;
@@ -136,6 +137,8 @@ final class PublisherUndertowConfigurator {
 		return
 			publish(
 				catalog,
+				config.extension("site",Site.class),
+				"vocabularium/assets/",
 				config.getBase().getPath(),
 				cachePath,
 				config.getServer().getPort(),
@@ -197,7 +200,7 @@ final class PublisherUndertowConfigurator {
 		}
 	}
 
-	private Undertow publish(final Catalog catalog,final String basePath, final Path serializationCachePath, final int port, final String host, final DocumentationStrategy strategy) throws IOException {
+	private Undertow publish(final Catalog catalog, final Site site, final String vocabAssetsPath, final String basePath, final Path serializationCachePath, final int port, final String host, final DocumentationStrategy strategy) throws IOException {
 		LOGGER.debug("* Publishing vocabularies under {}",basePath);
 		final PathHandler pathHandler=path();
 		// Module serializations
@@ -206,12 +209,34 @@ final class PublisherUndertowConfigurator {
 		final DocumentationDeploymentFactory factory=publishDocumentation(catalog,pathHandler,strategy);
 		// Canonical namespaces
 		publishCanonicalNamespace(catalog,basePath,pathHandler,manager,factory);
+		// Vocab site
+		if(site!=null) {
+			publishVocabSite(catalog, pathHandler, basePath, site, vocabAssetsPath);
+		}
 		return
 			Undertow.
 				builder().
 					addHttpListener(port,host).
 					setHandler(new CanonicalPathHandler(pathHandler)).
 					build();
+	}
+
+	private void publishVocabSite(final Catalog catalog, final PathHandler pathHandler, final String basePath, final Site site, final String vocabAssetsPath) {
+		pathHandler.
+			addPrefixPath(
+				basePath+vocabAssetsPath,
+				new AssetProvider(vocabAssetsPath)
+			).
+			addExactPath(
+				basePath,
+				catalogReverseProxy(
+					catalog,
+					methodController(
+						contentNegotiation().
+							negotiate(
+								htmlContent(),
+								catalogRepresentation(site))).
+						allow(Methods.GET)));
 	}
 
 	private void publishCanonicalNamespace(final Catalog catalog, final String basePath, final PathHandler pathHandler, final SerializationManager manager, final DocumentationDeploymentFactory factory) {
@@ -310,6 +335,16 @@ final class PublisherUndertowConfigurator {
 					support(Formats.toMediaType(Format.TURTLE)).
 					support(Formats.toMediaType(Format.RDF_XML)).
 					support(Formats.toMediaType(Format.JSON_LD)).
+					support(CharacterEncodings.of(StandardCharsets.UTF_8)).
+					support(CharacterEncodings.of(StandardCharsets.ISO_8859_1)).
+					support(CharacterEncodings.of(StandardCharsets.US_ASCII));
+	}
+
+	private NegotiableContent htmlContent() {
+		return
+			NegotiableContent.
+				newInstance().
+					support(HTML).
 					support(CharacterEncodings.of(StandardCharsets.UTF_8)).
 					support(CharacterEncodings.of(StandardCharsets.ISO_8859_1)).
 					support(CharacterEncodings.of(StandardCharsets.US_ASCII));

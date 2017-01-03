@@ -42,6 +42,7 @@ public class Example {
 		site.setMetadata(meta);
 		site.setOwner(owner);
 		site.getOntologies().add(ontology);
+		site.setTags(Lists.newArrayList("Uncanny","Vocabularium"));
 		return site;
 	}
 
