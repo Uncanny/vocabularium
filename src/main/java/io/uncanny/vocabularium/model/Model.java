@@ -91,6 +91,7 @@ public final class Model {
 		final Language result=new Language();
 		result.setUri(obj.getUri());
 		result.setLabel(obj.getLabel());
+		result.setName(obj.getName());
 		return result;
 	}
 
