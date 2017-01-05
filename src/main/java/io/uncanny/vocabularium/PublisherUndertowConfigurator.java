@@ -31,9 +31,12 @@ import static io.undertow.Handlers.path;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.ldp4j.http.CharacterEncodings;
 import org.ldp4j.http.MediaType;
 import org.ldp4j.http.MediaTypes;
@@ -47,6 +50,8 @@ import io.uncanny.vocabularium.config.DocumentationConfig;
 import io.uncanny.vocabularium.config.PublisherConfig;
 import io.uncanny.vocabularium.handlers.ContentNegotiationHandler;
 import io.uncanny.vocabularium.handlers.NegotiableContent;
+import io.uncanny.vocabularium.model.Model;
+import io.uncanny.vocabularium.model.Owner;
 import io.uncanny.vocabularium.model.Site;
 import io.uncanny.vocabularium.spi.DocumentationDeployment;
 import io.uncanny.vocabularium.spi.DocumentationDeploymentFactory;
@@ -60,12 +65,52 @@ import io.uncanny.vocabularium.vocabulary.Module;
 import io.uncanny.vocabularium.vocabulary.Module.Format;
 import io.uncanny.vocabularium.vocabulary.Result;
 import io.uncanny.vocabularium.vocabulary.SerializationManager;
+import io.undertow.Handlers;
 import io.undertow.Undertow;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.CanonicalPathHandler;
 import io.undertow.server.handlers.PathHandler;
+import io.undertow.server.handlers.resource.PathResourceManager;
 import io.undertow.util.Methods;
+import io.undertow.util.StatusCodes;
 
 final class PublisherUndertowConfigurator {
+
+	private static final class LogoProvider implements HttpHandler {
+
+		private final Path logo;
+		private final String assetBase;
+		private final String relativePath;
+		private final HttpHandler next;
+
+		private LogoProvider(Path logo, String assetBase) {
+			this.logo=logo;
+			this.assetBase=assetBase;
+			this.relativePath=logo.getParent().getFileName()+"/"+logo.getFileName();
+			this.next=
+				Handlers.
+					resource(new PathResourceManager(logo.getParent(),100)).
+						setDirectoryListingEnabled(false);
+		}
+
+		@Override
+		public void handleRequest(HttpServerExchange exchange) throws Exception {
+			if(exchange.getRequestPath().equals(this.assetBase+this.relativePath)) {
+				this.next.handleRequest(exchange);
+			} else {
+				exchange.setStatusCode(StatusCodes.NOT_FOUND);
+			}
+		}
+
+		String getRelativePath() {
+			return this.relativePath;
+		}
+
+		public String getBase() {
+			return this.assetBase+this.logo.getParent().getFileName();
+		}
+	}
 
 	private static final class DefaultDocumentationProviderFactory implements DocumentationProviderFactory {
 
@@ -200,7 +245,7 @@ final class PublisherUndertowConfigurator {
 		}
 	}
 
-	private Undertow publish(final Catalog catalog, final Site site, final String vocabAssetsPath, final String basePath, final Path serializationCachePath, final int port, final String host, final DocumentationStrategy strategy) throws IOException {
+	private Undertow publish(final Catalog catalog, final Site site, final String vocabAssetsPath, final String basePath, final Path serializationCachePath, final int port, final String host, final DocumentationStrategy strategy) throws IOException, ConfigurationException {
 		LOGGER.debug("* Publishing vocabularies under {}",basePath);
 		final PathHandler pathHandler=path();
 		// Module serializations
@@ -211,7 +256,8 @@ final class PublisherUndertowConfigurator {
 		publishCanonicalNamespace(catalog,basePath,pathHandler,manager,factory);
 		// Vocab site
 		if(site!=null) {
-			publishVocabSite(catalog, pathHandler, basePath, site, vocabAssetsPath);
+			validateSiteConfiguration(site);
+			publishVocabSite(catalog,pathHandler,basePath,site,vocabAssetsPath);
 		}
 		return
 			Undertow.
@@ -221,12 +267,40 @@ final class PublisherUndertowConfigurator {
 					build();
 	}
 
+	private void validateSiteConfiguration(final Site site) throws ConfigurationException {
+		if(site.getOwner()==null) {
+			throw new ConfigurationException("No owner defined");
+		}
+		if(!StringUtils.isNotEmpty(site.getOwner().getName())) {
+			throw new ConfigurationException("No owner name defined");
+		}
+		if(!StringUtils.isNotEmpty(site.getOwner().getUri())) {
+			throw new ConfigurationException("No owner URI defined");
+		}
+		String logo = site.getOwner().getLogo();
+		if(!StringUtils.isNotEmpty(logo)) {
+			throw new ConfigurationException("No owner logo path defined");
+		}
+		try {
+			if(!Paths.get(logo).toFile().isFile()) {
+				throw new ConfigurationException("Could not find owner logo");
+			}
+		} catch (InvalidPathException e) {
+			throw new ConfigurationException("Invalid owner logo path defined",e);
+		}
+	}
+
 	private void publishVocabSite(final Catalog catalog, final PathHandler pathHandler, final String basePath, final Site site, final String vocabAssetsPath) {
+		final LogoProvider handler=new LogoProvider(Paths.get(site.getOwner().getLogo()), basePath+vocabAssetsPath);
+		final Site updated=Model.clone(site);
+		final Owner owner=updated.getOwner();
+		owner.setLogo(handler.getRelativePath());
 		pathHandler.
 			addPrefixPath(
 				basePath+vocabAssetsPath,
 				new AssetProvider(vocabAssetsPath)
 			).
+			addPrefixPath(handler.getBase(),handler).
 			addExactPath(
 				basePath,
 				catalogReverseProxy(
@@ -235,7 +309,7 @@ final class PublisherUndertowConfigurator {
 						contentNegotiation().
 							negotiate(
 								htmlContent(),
-								catalogRepresentation(site))).
+								catalogRepresentation(updated))).
 						allow(Methods.GET)));
 	}
 
