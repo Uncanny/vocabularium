@@ -222,14 +222,14 @@
       <hr/>
       <footer class="footer">
         <div class="row">
-          <div class="col-md-10">
+          <div class="col-md-10" style="margin-top:10px">
             Developed by <a href="{{ publication.owner.uri }}" target="_blank">{{ publication.owner.name }}</a><br/>
             Built with <a target="_blank" href="http://getbootstrap.com/">Bootstrap</a>, with icons from <a target="_blank" href="http://glyphicons.com/">Glyphicons</a><br/>
             Latest revision {{ publication.date }}<br/>
             <p>&copy; {{ publication.copyright }}</p>
           </div>
           <div class="col-md-2">
-            <a href="{{ publication.owner.uri }}" target="_blank"><img src="vocabularium/assets/{{ publication.owner.logo }}" alt="{{ publication.owner.name }} logo" class="img-rounded img-responsive" style="max-height:90px;"/></a>
+            <a href="{{ publication.owner.uri }}" target="_blank" style="vertical-align:middle;align:right"><img src="vocabularium/assets/{{ publication.owner.logo }}" alt="{{ publication.owner.name }} logo" class="img-rounded img-responsive" style="max-height:100px;float:right"/></a>
           </div>
         </div>
       </footer>
