@@ -36,7 +36,7 @@ final class Vocabularies {
 	private final ImmutableMap<Namespace, Vocabulary> vocabularies;
 	private final ImmutableMap<Namespace, Namespace> versions;
 
-	public Vocabularies(final ImmutableMap<Namespace, Vocabulary> vocabularies, final ImmutableMap<Namespace, Namespace> versions) {
+	private Vocabularies(final ImmutableMap<Namespace, Vocabulary> vocabularies, final ImmutableMap<Namespace, Namespace> versions) {
 		this.vocabularies = vocabularies;
 		this.versions = versions;
 	}

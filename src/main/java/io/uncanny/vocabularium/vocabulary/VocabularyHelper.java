@@ -52,7 +52,7 @@ final class VocabularyHelper {
 	private final OntModel vocabulary;
 	private final Module module;
 
-	VocabularyHelper(final Model model, final Module module) {
+	private VocabularyHelper(final Model model, final Module module) {
 		this.module=module;
 		final OntDocumentManager mgr = new OntDocumentManager();
 		mgr.setProcessImports(false);
